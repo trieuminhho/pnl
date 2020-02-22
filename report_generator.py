@@ -1,5 +1,5 @@
 import pandas as pd
-
+import datetime as datetime
 
 def read_tables(file):
 
@@ -111,7 +111,6 @@ def daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date
     row_range = iter(range(len(day_trades_final)))
     for row in row_range:
         all_day_pos = single_ticker_day_trades(day_trades_final.iloc[row, 0], positions)
-        print(len(all_day_pos))
         if len(all_day_pos) == 1:
             # traded amount
             day_trades_final.iloc[row, 2] = all_day_pos.iloc[0, 2]
@@ -160,6 +159,50 @@ def single_ticker_day_trades(date, positions):
     return all_day_pos
 
 
+def monthly_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date):
+
+    pnl_day = daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+    pnl_month = pnl_day.copy()
+
+    date_split = end_date.split('-')
+    start_month_date = date_split[0] + '-' + date_split[1] + '-01'
+
+    date_mask = (pnl_month.iloc[:, 0] >= start_month_date) & (pnl_month.iloc[:, 0] <= end_date)
+
+    final = pnl_month.loc[date_mask].reset_index(drop=True)
+
+    final['Monthly PnL'] = 0
+
+    monthly_sum = 0
+    for row in range(len(final)):
+        monthly_sum += final.iloc[row, 6]
+        final.iloc[row, 7] = monthly_sum
+
+    return final
+
+
+def yearly_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date):
+
+    pnl_day = daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+
+    pnl_year = pnl_day.copy()
+
+    date_split = end_date.split('-')
+    start_year_date = date_split[0] + '-01' + '-01'
+
+    date_mask = (pnl_year.iloc[:, 0] >= start_year_date) & (pnl_year.iloc[:, 0] <= end_date)
+
+    final = pnl_year.loc[date_mask].reset_index(drop=True)
+
+    final['Yearly PnL'] = 0
+
+    yearly_sum = 0
+    for row in range(len(final)):
+        yearly_sum += final.iloc[row, 6]
+        final.iloc[row, 7] = yearly_sum
+
+    print(final)
+    return final
 
 
 
@@ -183,7 +226,11 @@ if __name__ == '__main__':
 
     pnl_d = daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
 
-    print(pnl_d)
+    pnl_m = monthly_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+
+
+    yearly_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+
 
 
 
