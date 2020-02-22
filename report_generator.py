@@ -48,15 +48,31 @@ def positions_held(ticker, start_date, end_date, trade_df):
     # loop through each row and sum the traded amount
 
     final = ticker_df_sorted_masked.iloc[:, 0:3]
-    final['Current EOD Positions'] = 0
+    final['Current Position'] = 0
     current_eod_positions = 0
 
     for i in range(len(final.iloc[:, 2])):
         current_eod_positions += final.iloc[i, 2]
-        print(final.iloc[i, 2])
         final.iloc[i, 3] = current_eod_positions
 
     return final
+
+
+def valuation(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date):
+    positions_open = int(positions_held(ticker, start_date, end_date, trade_df).iloc[:, 3].tail(1))
+    eod_price = eod_prices_df.loc[eod_prices_df.iloc[:, 0] == end_date][ticker]
+    multiple = float(contract_df.loc[contract_df.iloc[:, 0] == ticker].iloc[:,3])
+    fx = 1
+    value = positions_open * eod_price * multiple * fx
+    return value
+
+
+def daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date):
+    value = valuation(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+    print(value)
+
+
+
 
 
 
@@ -67,7 +83,16 @@ if __name__ == '__main__':
 
     trade_df, instrument_df, contract_df, eod_prices_df = read_tables(data_file_excel)
 
-    pos_held = positions_held("CCN9 Comdty", "2019-04-30", "2019-05-21", trade_df)
+    start_date = "2019-04-30"
+    end_date = "2019-05-17"
+    ticker = "CCN9 Comdty"
+
+    pos_held = positions_held(ticker, start_date, end_date, trade_df)
     print(pos_held)
+
+    value = valuation(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+
+    pnl_d = daily_pnl(trade_df, contract_df, eod_prices_df, ticker, start_date, end_date)
+
 
 
