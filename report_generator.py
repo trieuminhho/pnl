@@ -1,10 +1,9 @@
 import pandas as pd
-import datetime as datetime
 
 
 class ReportAnalytics:
     # init constructor which runs at instances of this class
-    def __init__(self, file, ticker ,start_date, end_date):
+    def __init__(self, file, ticker, start_date, end_date):
         self.ticker = ticker
         self.start_date = start_date
         self.end_date = end_date
@@ -74,8 +73,8 @@ class ReportAnalytics:
 
     def valuation(self):
 
-        positions_open = int(self.positions.iloc[:, 3].tail(1))
-        eod_price = self.prices.loc[self.prices.iloc[:, 0] == end_date][self.ticker].values
+        positions_open = self.positions.iloc[:, 3].tail(1)
+        eod_price = self.prices.loc[self.prices.iloc[:, 0] == self.end_date][self.ticker].values
         multiple = float(self.contract.loc[self.contract.iloc[:, 0] == self.ticker].iloc[:, 3])
         fx = 1
 
@@ -91,7 +90,7 @@ class ReportAnalytics:
         # mask date before start and after end
         date_mask = (self.prices.iloc[:, 0] >= self.start_date) & (self.prices.iloc[:, 0] <= self.end_date)
 
-        final = self.prices.iloc[:, [0, self.prices.columns.get_loc(ticker)]][date_mask]
+        final = self.prices.iloc[:, [0, self.prices.columns.get_loc(self.ticker)]][date_mask]
 
         positions = self.positions
 
@@ -212,11 +211,17 @@ class ReportAnalytics:
 
     def ticker_summary(self):
 
-        summary = self.daily_pnl
+        summary = self.daily_pnl.copy()
         summary[self.monthly_pnl.columns[7]] = self.monthly_pnl.iloc[:, 7]
         summary[self.yearly_pnl.columns[7]] = self.yearly_pnl.iloc[:, 7]
-        return summary
 
+        # format cells
+        summary.iloc[:, 0] = pd.DatetimeIndex(summary.iloc[:, 0]).strftime("%Y-%m-%d")
+        # rename ticker column to ticker
+
+        summary.rename(columns={summary.columns[1]: "EOD Price"}, inplace=True)
+
+        return summary
 
 
 if __name__ == '__main__':

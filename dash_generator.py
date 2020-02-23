@@ -1,32 +1,18 @@
 
-import os
-import pathlib
-import statistics
-from collections import OrderedDict
-
-import pathlib as pl
-import dash
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
-import pandas as pd
-from dash.dependencies import Input, Output, State
-import report_generator as report
-import utils
-
+from report_generator import ReportAnalytics as Report
 from datetime import datetime as dt
 import dash
 import dash_html_components as html
 import dash_core_components as dcc
 from collections import defaultdict
+import dash_table
+import pandas as pd
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-data_file_excel = 'data.xlsx'
+data_file_excel = 'data/data.xlsx'
 
-trade_df, instrument_df, contract_df, eod_prices_df = report.read_tables('data/data.xlsx')
-
+trade_df, instrument_df, contract_df, eod_prices_df = Report.read_tables(data_file_excel)
 
 available_asset = instrument_df.iloc[:, 2].unique()
 
@@ -34,10 +20,13 @@ available_instrument = instrument_df.iloc[:, 0]
 
 available_contract = contract_df.iloc[:, 0]
 
+column_names = Report(data_file_excel, 'CCN9 Comdty', '2019-04-30', '2019-05-30').ticker_summary.columns
+
+
 dict_all = defaultdict(lambda: defaultdict(dict))
 
 
-#add all
+# add all
 for i in range(len(available_asset)):
     asset_mask = (instrument_df.iloc[:, 2] == available_asset[i])
     asset_instruments = list(instrument_df.iloc[:, 1][asset_mask])
@@ -63,9 +52,6 @@ for i in range(len(available_asset)):
         dict_all[available_asset[i]][asset_instruments[j]] = instrument_contract
 
 names = list(dict_all.keys())
-
-print(list(dict_all['Equity'].keys()))
-
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -113,15 +99,25 @@ app.layout = html.Div(
                         id='my-date-picker-range',
                         min_date_allowed=dt(2000, 1, 1),
                         max_date_allowed=dt(2030, 1, 1),
-                        initial_visible_month=dt(2020, 2, 1),
+                        initial_visible_month=dt(2019, 4, 30),
                     ),
                     html.Div(id='output-container-date-picker-range')
+                ]
+            ),
+            html.Div(
+                className="three columns div-right-panel",
+                children=[
+                    dash_table.DataTable(
+                        id='summary-table',
+                        columns=[{"name": i, "id": i} for i in column_names],
+                    )
                 ]
             )
         ]
 )
 
 
+# Calendar element
 @app.callback(
     dash.dependencies.Output('output-container-date-picker-range', 'children'),
     [dash.dependencies.Input('my-date-picker-range', 'start_date'),
@@ -141,15 +137,17 @@ def update_date(start_date, end_date):
     else:
         return string_prefix
 
+
+# instrument dropdown options
 @app.callback(
     dash.dependencies.Output('instrument-dropdown', 'options'),
     [dash.dependencies.Input('asset-class-dropdown', 'value')]
 )
 def update_instrument_dropdown_options(asset_name):
-    print([{'label': i, 'value': i} for i in list(dict_all[asset_name].keys())])
     return [{'label': i, 'value': i} for i in list(dict_all[asset_name].keys())]
 
 
+# instrument dropdown value
 @app.callback(
     dash.dependencies.Output('instrument-dropdown', 'value'),
     [dash.dependencies.Input('asset-class-dropdown', 'value')]
@@ -158,6 +156,7 @@ def update_instrument_dropdown_value(asset_name):
     return list(dict_all[asset_name].keys())[0]
 
 
+# contract dropdown options
 @app.callback(
     dash.dependencies.Output('contract-dropdown', 'options'),
     [
@@ -168,6 +167,8 @@ def update_instrument_dropdown_value(asset_name):
 def update_contract_dropdown_options(asset_name, instrument_name):
     return [{'label': i, 'value': i} for i in list(dict_all[asset_name][instrument_name])]
 
+
+# contract dropdown value
 @app.callback(
     dash.dependencies.Output('contract-dropdown', 'value'),
     [
@@ -179,10 +180,27 @@ def update_contract_dropdown_value(asset_name, instrument_name):
     return list(dict_all[asset_name][instrument_name])[0]
 
 
+# display table based on selection
+@app.callback(
+    dash.dependencies.Output('summary-table', 'data'),
+    [
+        dash.dependencies.Input('asset-class-dropdown', 'value'),
+        dash.dependencies.Input('instrument-dropdown', 'value'),
+        dash.dependencies.Input('contract-dropdown', 'value'),
+        dash.dependencies.Input('my-date-picker-range', 'start_date'),
+        dash.dependencies.Input('my-date-picker-range', 'end_date'),
+    ]
+)
+def update_summary_table(asset_name, instrument_name, contract_name, start_date, end_date):
+    
+    report_obj = Report(data_file_excel, contract_name, start_date, end_date)
 
+    ticker_sum = report_obj.ticker_summary.copy()
+    ticker_sum = ticker_sum.round(2)
+    final_df = ticker_sum.to_dict('records')
 
-
-
+    print(final_df)
+    return final_df
 
 
 
