@@ -1,5 +1,4 @@
-
-from report_generator import ReportAnalytics as Report
+import report_generator as Report
 from datetime import datetime as dt
 import dash
 import dash_html_components as html
@@ -8,11 +7,13 @@ from collections import defaultdict
 import dash_table
 import pandas as pd
 
+pd.set_option('precision', 2)
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 data_file_excel = 'data/data.xlsx'
 
-trade_df, instrument_df, contract_df, eod_prices_df = Report.read_tables(data_file_excel)
+trade_df, instrument_df, contract_df, eod_prices_df = Report.ReportAnalytics.read_tables(data_file_excel)
 
 available_asset = instrument_df.iloc[:, 2].unique()
 
@@ -20,7 +21,7 @@ available_instrument = instrument_df.iloc[:, 0]
 
 available_contract = contract_df.iloc[:, 0]
 
-column_names = Report(data_file_excel, 'CCN9 Comdty', '2019-04-30', '2019-05-30').ticker_summary.columns
+column_names = Report.ReportAnalytics(data_file_excel, 'CCN9 Comdty', '2019-04-30', '2019-05-30').ticker_summary.columns
 
 
 dict_all = defaultdict(lambda: defaultdict(dict))
@@ -60,14 +61,14 @@ app.layout = html.Div(
         className="row",
         children=[
             html.Div(
-                className="three columns div-left-panel",
+                className="four columns div-left-panel",
                 children=[
                     # Div for Left Panel App Info
                     html.Div(
                         className="div-info",
                         children=[
                             html.Img(
-                                className="logo", src=app.get_asset_url("dash-logo-new.png")
+                                className="logo", src=app.get_asset_url('logo_fixed.png')
                             ),
                             html.H6(className="title-header", children="Trade Report"),
                         ],
@@ -100,13 +101,18 @@ app.layout = html.Div(
                         min_date_allowed=dt(2000, 1, 1),
                         max_date_allowed=dt(2030, 1, 1),
                         initial_visible_month=dt(2019, 4, 30),
+                        end_date=dt(2019, 5, 1),
+                        start_date=dt(2019, 4, 30)
                     ),
-                    html.Div(id='output-container-date-picker-range')
                 ]
             ),
             html.Div(
-                className="three columns div-right-panel",
+                className="four columns div-right-panel",
                 children=[
+                    html.H3(
+                        "Trade Summary Report",
+                        style={"margin-bottom": "0px"},
+                    ),
                     dash_table.DataTable(
                         id='summary-table',
                         columns=[{"name": i, "id": i} for i in column_names],
@@ -115,28 +121,6 @@ app.layout = html.Div(
             )
         ]
 )
-
-
-# Calendar element
-@app.callback(
-    dash.dependencies.Output('output-container-date-picker-range', 'children'),
-    [dash.dependencies.Input('my-date-picker-range', 'start_date'),
-     dash.dependencies.Input('my-date-picker-range', 'end_date')])
-def update_date(start_date, end_date):
-    string_prefix = 'You have selected: '
-    if start_date is not None:
-        start_date = dt.strptime(start_date.split(' ')[0], '%Y-%m-%d')
-        start_date_string = start_date.strftime('%B %d, %Y')
-        string_prefix = string_prefix + 'Start Date: ' + start_date_string + ' | '
-    if end_date is not None:
-        end_date = dt.strptime(end_date.split(' ')[0], '%Y-%m-%d')
-        end_date_string = end_date.strftime('%B %d, %Y')
-        string_prefix = string_prefix + 'End Date: ' + end_date_string
-    if len(string_prefix) == len('You have selected: '):
-        return 'Select a date to see it displayed here'
-    else:
-        return string_prefix
-
 
 # instrument dropdown options
 @app.callback(
@@ -192,17 +176,10 @@ def update_contract_dropdown_value(asset_name, instrument_name):
     ]
 )
 def update_summary_table(asset_name, instrument_name, contract_name, start_date, end_date):
-    
-    report_obj = Report(data_file_excel, contract_name, start_date, end_date)
-
-    ticker_sum = report_obj.ticker_summary.copy()
-    ticker_sum = ticker_sum.round(2)
-    final_df = ticker_sum.to_dict('records')
-
-    print(final_df)
+    pnl_obj_sum = Report.summary_total(data_file_excel, contract_name,
+                                       instrument_name, asset_name, start_date, end_date)
+    final_df = pnl_obj_sum.to_dict('records')
     return final_df
-
-
 
 
 if __name__ == '__main__':

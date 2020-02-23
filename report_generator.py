@@ -1,5 +1,6 @@
 import pandas as pd
 
+pd.set_option('precision', 2)
 
 class ReportAnalytics:
     # init constructor which runs at instances of this class
@@ -202,7 +203,7 @@ class ReportAnalytics:
 
         for i in range(len(value)):
             if value.iloc[i, 1] != 'n.a.':
-                value.iloc[i, 6] = value.iloc[i, 5] * value.iloc[i, 1] * value.iloc[i, 4] * fx
+                value.iloc[i, 6] = abs(value.iloc[i, 5] * value.iloc[i, 1] * value.iloc[i, 4] * fx)
             else:
                 value.iloc[i, 6] = 'n.a.'
         return value
@@ -245,22 +246,59 @@ def all_tickers_in_set(file, ticker, instrument, asset):
                 all_instrument_asset = all_instrument_asset + instrument_contract
             else:
                 continue
-    elif ticker == 'All' and instrument== 'All':
+    elif ticker == 'All' and instrument == 'All':
         for i in range(len(asset_instruments_code)):
             instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[i])
             instrument_contract = list(available_contract[instrument_mask])
             all_instrument_asset = all_instrument_asset + instrument_contract
+    else:
+        all_instrument_asset.append(ticker)
 
-    print(all_instrument_asset)
     return all_instrument_asset
 
 
-def summary_total(file, ticker, instrument, asset):
+def add_summary(df1, df2):
+
+    df = df1.copy()
+
+    for j in range(len(df1.iloc[0, :])):
+        for i in range(len(df1.iloc[:, 0])):
+            if j != 0:
+                if type(df1.iloc[i, j]) == str and type(df2.iloc[i, j]) != str:
+                    if j == 1:
+                        print(df2.iloc[i, j])
+                        df.iloc[i, j] = abs(df2.iloc[i, j])
+                    else:
+                        df.iloc[i, j] = df2.iloc[i, j]
+                elif type(df1.iloc[i, j]) != str and type(df2.iloc[i, j]) == str:
+                    if j == 1:
+                        df.iloc[i, j] = abs(df1.iloc[i, j])
+                    else:
+                        df.iloc[i, j] = df1.iloc[i, j]
+                elif type(df1.iloc[i, j]) == str and type(df2.iloc[i, j]) == str:
+                    continue
+                else:
+                    if j == 1:
+                        df.iloc[i, j] = abs(df.iloc[i, j]) + abs(df2.iloc[i, j])
+                    else:
+                        df.iloc[i, j] = df.iloc[i, j] + df2.iloc[i, j]
+    return df
+
+
+def summary_total(file, ticker, instrument, asset, start_date, end_date):
 
     tickers_list = all_tickers_in_set(file, ticker, instrument, asset)
 
-    # sum up all the tickers 
-    return 0
+    pnl_obj_final = ReportAnalytics(file, tickers_list[0], start_date, end_date).ticker_summary
+
+    if len(tickers_list) > 1:
+        for i in range(1, len(tickers_list)):
+            pnl_obj = ReportAnalytics(file, tickers_list[i], start_date, end_date).ticker_summary
+            pnl_obj_final = add_summary(pnl_obj_final, pnl_obj)
+    else:
+        pass
+
+    return pnl_obj_final
 
 
 
@@ -272,8 +310,8 @@ if __name__ == '__main__':
     trade_df, instrument_df, contract_df, eod_prices_df = ReportAnalytics.read_tables(data_file_excel)
 
     start_date = "2019-04-30"
-    end_date = "2019-05-29"
-    ticker = "All"
+    end_date = "2019-07-29"
+    ticker = "ESM9 Index"
     instrument = "S&P500"
     asset = "Equity"
     pd.set_option('display.max_columns', 30)
@@ -282,7 +320,7 @@ if __name__ == '__main__':
     # pnl_obj = ReportAnalytics(data_file_excel, ticker, start_date, end_date)
     # # print(pnl_obj.ticker_summary)
 
-    summary_total(data_file_excel, ticker, instrument, asset)
+    pnl_obj_sum = summary_total(data_file_excel, ticker, instrument, asset, start_date, end_date)
 
 
 
