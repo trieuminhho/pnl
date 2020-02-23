@@ -19,6 +19,7 @@ from datetime import datetime as dt
 import dash
 import dash_html_components as html
 import dash_core_components as dcc
+from collections import defaultdict
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -31,39 +32,39 @@ available_asset = instrument_df.iloc[:, 2].unique()
 
 available_instrument = instrument_df.iloc[:, 0]
 
-asset_instrument_dict = {}
+available_contract = contract_df.iloc[:, 0]
+
+dict_all = defaultdict(lambda: defaultdict(dict))
+
+
+#add all
+for i in range(len(available_asset)):
+    asset_mask = (instrument_df.iloc[:, 2] == available_asset[i])
+    asset_instruments = list(instrument_df.iloc[:, 1][asset_mask])
+    asset_instruments_code = list(instrument_df.iloc[:, 0][asset_mask])
+    all_instrument_asset = []
+    for j in range(len(asset_instruments)):
+        instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[j])
+        instrument_contract = list(available_contract[instrument_mask])
+        all_instrument_asset = all_instrument_asset + instrument_contract
+
+    all_instrument_asset.insert(0, 'All')
+    dict_all[available_asset[i]]['All'] = all_instrument_asset
+
 
 for i in range(len(available_asset)):
     asset_mask = (instrument_df.iloc[:, 2] == available_asset[i])
     asset_instruments = list(instrument_df.iloc[:, 1][asset_mask])
-    asset_instruments.insert(0, 'All')
-    asset_instrument_dict[available_asset[i]] = asset_instruments
+    asset_instruments_code = list(instrument_df.iloc[:, 0][asset_mask])
+    for j in range(len(asset_instruments)):
+        instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[j])
+        instrument_contract = list(available_contract[instrument_mask])
+        instrument_contract.insert(0, 'All')
+        dict_all[available_asset[i]][asset_instruments[j]] = instrument_contract
 
-available_contract = contract_df.iloc[:, 0]
-instrument_contract_dict = {}
+names = list(dict_all.keys())
 
-for i in range(len(available_instrument)):
-    instrument_mask = (contract_df.iloc[:, 2] == available_instrument[i])
-    instrument_contract = list(available_contract[instrument_mask])
-    instrument_contract.insert(0, 'All')
-    instrument_contract_dict[instrument_df.iloc[i, 1]] = instrument_contract
-
-
-names = list(asset_instrument_dict.keys())
-names2 = list(instrument_contract_dict.keys())
-names3 = list(available_contract)
-
-
-print(names)
-print(names2)
-print(names3)
-
-print(asset_instrument_dict)
-print(instrument_contract_dict)
-
-
-
-
+print(list(dict_all['Equity'].keys()))
 
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -96,14 +97,12 @@ app.layout = html.Div(
                     html.Div(
                         dcc.Dropdown(
                             id='instrument-dropdown',
-                            value=names2[0],
                             searchable=True
                         ),
                     ),
                     html.Div(
                         dcc.Dropdown(
                             id='contract-dropdown',
-                            value=names3[0],
                             searchable=True
                         ),
                     ),
@@ -142,36 +141,49 @@ def update_date(start_date, end_date):
     else:
         return string_prefix
 
-@app.callback([
-    dash.dependencies.Output('instrument-dropdown', 'options')],
+@app.callback(
+    dash.dependencies.Output('instrument-dropdown', 'options'),
     [dash.dependencies.Input('asset-class-dropdown', 'value')]
 )
-def update_instrument_dropdown(asset_name):
-    return [{'label': i, 'value': i} for i in asset_instrument_dict[asset_name]]
+def update_instrument_dropdown_options(asset_name):
+    print([{'label': i, 'value': i} for i in list(dict_all[asset_name].keys())])
+    return [{'label': i, 'value': i} for i in list(dict_all[asset_name].keys())]
 
 
 @app.callback(
+    dash.dependencies.Output('instrument-dropdown', 'value'),
+    [dash.dependencies.Input('asset-class-dropdown', 'value')]
+)
+def update_instrument_dropdown_value(asset_name):
+    return list(dict_all[asset_name].keys())[0]
+
+
+@app.callback(
+    dash.dependencies.Output('contract-dropdown', 'options'),
     [
-        dash.dependencies.Output('contract-dropdown', 'options')
-    ],
-    [
-        dash.dependencies.Input('instrument-dropdown', 'value'),
-        dash.dependencies.Input('asset-class-dropdown', 'value')
+        dash.dependencies.Input('asset-class-dropdown', 'value'),
+        dash.dependencies.Input('instrument-dropdown', 'value')
     ]
 )
-def update_contract_dropdown(instrument_name, asset_name):
-    print(instrument_name)
-    if instrument_name == 'All':
-        all_instruments_in_asset = []
-        for key in asset_instrument_dict[asset_name][1:]:
-            all_instruments_in_asset = all_instruments_in_asset + instrument_contract_dict[key][1:]
+def update_contract_dropdown_options(asset_name, instrument_name):
+    return [{'label': i, 'value': i} for i in list(dict_all[asset_name][instrument_name])]
 
-            print(all_instruments_in_asset)
-            print(instrument_contract_dict[instrument_name])
+@app.callback(
+    dash.dependencies.Output('contract-dropdown', 'value'),
+    [
+        dash.dependencies.Input('asset-class-dropdown', 'value'),
+        dash.dependencies.Input('instrument-dropdown', 'value')
+    ]
+)
+def update_contract_dropdown_value(asset_name, instrument_name):
+    return list(dict_all[asset_name][instrument_name])[0]
 
-        return [{'label': i, 'value': i} for i in all_instruments_in_asset]
-    else:
-        return [{'label': i, 'value': i} for i in instrument_contract_dict[instrument_name]]
+
+
+
+
+
+
 
 
 
