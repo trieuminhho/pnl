@@ -11,10 +11,10 @@ class ReportAnalytics:
             self.contract, self.prices = ReportAnalytics.read_tables(file)
 
         self.positions = self.positions_held()
-        self.valuation = self.valuation()
         self.daily_pnl = self.daily_pnl()
         self.monthly_pnl = self.monthly_pnl()
         self.yearly_pnl = self.yearly_pnl()
+        self.valuation = self.valuation()
         self.ticker_summary = self.ticker_summary()
 
     @staticmethod
@@ -70,20 +70,6 @@ class ReportAnalytics:
             final.iloc[i, 4] = current_eod_positions
 
         return final
-
-    def valuation(self):
-
-        positions_open = self.positions.iloc[:, 3].tail(1)
-        eod_price = self.prices.loc[self.prices.iloc[:, 0] == self.end_date][self.ticker].values
-        multiple = float(self.contract.loc[self.contract.iloc[:, 0] == self.ticker].iloc[:, 3])
-        fx = 1
-
-        if eod_price != 'n.a.':
-            value = positions_open * eod_price * multiple * fx
-            return value
-        else:
-            print("No EOD data on selected valuation date.")
-            return False
 
     def daily_pnl(self):
 
@@ -209,11 +195,26 @@ class ReportAnalytics:
 
         return final
 
+    def valuation(self):
+
+        value = self.daily_pnl.copy().iloc[:, 0:6]
+        fx = 1
+        value['valuation'] = 0
+
+        for i in range(len(value)):
+            if value.iloc[i, 1] != 'n.a.':
+                value.iloc[i, 6] = value.iloc[i, 5] * value.iloc[i, 1] * value.iloc[i, 4] * fx
+            else:
+                value.iloc[i, 6] = 'n.a.'
+        return value
+
+
     def ticker_summary(self):
 
         summary = self.daily_pnl.copy()
         summary[self.monthly_pnl.columns[7]] = self.monthly_pnl.iloc[:, 7]
         summary[self.yearly_pnl.columns[7]] = self.yearly_pnl.iloc[:, 7]
+        summary[self.valuation.columns[6]] = self.valuation.iloc[:, 6]
 
         # format cells
         summary.iloc[:, 0] = pd.DatetimeIndex(summary.iloc[:, 0]).strftime("%Y-%m-%d")
@@ -221,7 +222,10 @@ class ReportAnalytics:
 
         summary.rename(columns={summary.columns[1]: "EOD Price"}, inplace=True)
 
+        summary = summary.iloc[:,[0,5,9,6,7,8]]
+
         return summary
+
 
 
 if __name__ == '__main__':
