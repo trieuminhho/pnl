@@ -9,7 +9,6 @@ class ReportAnalytics:
         self.end_date = end_date
         self.trade, self.instrument,\
             self.contract, self.prices = ReportAnalytics.read_tables(file)
-
         self.positions = self.positions_held()
         self.daily_pnl = self.daily_pnl()
         self.monthly_pnl = self.monthly_pnl()
@@ -208,7 +207,6 @@ class ReportAnalytics:
                 value.iloc[i, 6] = 'n.a.'
         return value
 
-
     def ticker_summary(self):
 
         summary = self.daily_pnl.copy()
@@ -227,6 +225,45 @@ class ReportAnalytics:
         return summary
 
 
+def all_tickers_in_set(file, ticker, instrument, asset):
+    trade_df, instrument_df, contract_df, _ = ReportAnalytics.read_tables(file)
+
+    available_contract = contract_df.iloc[:, 0]
+
+    asset_mask = (instrument_df.iloc[:, 2] == asset)
+
+    asset_instruments_code = list(instrument_df.iloc[:, 0][asset_mask])
+
+    all_instrument_asset = []
+
+    if ticker == 'All' and instrument != 'All':
+        instrument_of_interest = list((instrument_df.iloc[:, 1] == instrument)[asset_mask])
+        for i in range(len(asset_instruments_code)):
+            if instrument_of_interest[i]:
+                instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[i])
+                instrument_contract = list(available_contract[instrument_mask])
+                all_instrument_asset = all_instrument_asset + instrument_contract
+            else:
+                continue
+    elif ticker == 'All' and instrument== 'All':
+        for i in range(len(asset_instruments_code)):
+            instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[i])
+            instrument_contract = list(available_contract[instrument_mask])
+            all_instrument_asset = all_instrument_asset + instrument_contract
+
+    print(all_instrument_asset)
+    return all_instrument_asset
+
+
+def summary_total(file, ticker, instrument, asset):
+
+    tickers_list = all_tickers_in_set(file, ticker, instrument, asset)
+
+    # sum up all the tickers 
+    return 0
+
+
+
 
 if __name__ == '__main__':
 
@@ -236,14 +273,16 @@ if __name__ == '__main__':
 
     start_date = "2019-04-30"
     end_date = "2019-05-29"
-    ticker = "CCN9 Comdty"
+    ticker = "All"
+    instrument = "S&P500"
+    asset = "Equity"
     pd.set_option('display.max_columns', 30)
     pd.set_option('display.width', 2000)
 
-    pnl_obj = ReportAnalytics(data_file_excel, ticker, start_date, end_date)
-    print(pnl_obj.ticker_summary)
+    # pnl_obj = ReportAnalytics(data_file_excel, ticker, start_date, end_date)
+    # # print(pnl_obj.ticker_summary)
 
-
+    summary_total(data_file_excel, ticker, instrument, asset)
 
 
 
