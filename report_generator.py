@@ -125,6 +125,9 @@ class ReportAnalytics:
             current_pos_2 += day_trades_final.iloc[row, 2]
             day_trades_final.iloc[row, 5] = current_pos_2
 
+            # opening net position
+            open_pos = current_pos_2 - day_trades_final.iloc[row, 2]
+
             # calculate daily pnl
             eod_price_1 = day_trades_final.iloc[row - 1, 1]
             eod_price_2 = day_trades_final.iloc[row, 1]
@@ -135,10 +138,12 @@ class ReportAnalytics:
                 current_pos_1 = day_trades_final.iloc[row -1, 5]
 
                 if row > 0 and current_pos_1:
-                    day_trades_final.iloc[row, 6] = ((eod_price_2 - eod_price_1)*current_pos_2 +
+                    day_trades_final.iloc[row, 6] = ((eod_price_2 - eod_price_1) * open_pos +
                                                      (eod_price_2 - trade_price) * traded_amount) * multiplier
                 else:
                     day_trades_final.iloc[row, 6] = ((eod_price_2 - trade_price) * traded_amount) * multiplier
+
+        print(day_trades_final)
 
         return day_trades_final
 

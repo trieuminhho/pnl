@@ -60,7 +60,7 @@ app.layout = html.Div(
         className="row",
         children=[
             html.Div(
-                className="four columns div-left-panel",
+                className="three columns div-left-panel",
                 children=[
                     # Div for Left Panel App Info
                     html.Div(
@@ -69,7 +69,7 @@ app.layout = html.Div(
                             html.Img(
                                 className="logo", src=app.get_asset_url('logo_fixed.png')
                             ),
-                            html.H6(className="title-header", children="Trade Report"),
+                            html.H6(className="title-header", children="Ticker Filters"),
                         ],
                     ),
                     html.Div(
@@ -92,6 +92,7 @@ app.layout = html.Div(
                             searchable=True
                         ),
                     ),
+
                     html.Hr(),
                     html.Div(id='display-selected-values'),
 
@@ -125,6 +126,7 @@ app.layout = html.Div(
             )
         ]
 )
+
 
 # instrument dropdown options
 @app.callback(
@@ -181,13 +183,14 @@ def update_contract_dropdown_value(asset_name, instrument_name):
     ]
 )
 def update_summary_table(asset_name, instrument_name, contract_name, start_date, end_date):
-    pnl_obj_sum = report.summary_total(data_file_excel, contract_name,
-                                       instrument_name, asset_name, start_date, end_date)
-    pnl_obj_sum.iloc[:,3] = pnl_obj_sum.iloc[:,3].map("{:,.2f}".format)
-    pnl_obj_sum.iloc[:,4] = pnl_obj_sum.iloc[:,4].map("{:,.2f}".format)
-    pnl_obj_sum.iloc[:,5] = pnl_obj_sum.iloc[:,5].map("{:,.2f}".format)
-    final_df = pnl_obj_sum.to_dict('records')
-    return final_df
+    if start_date < end_date:
+        pnl_obj_sum = report.summary_total(data_file_excel, contract_name,
+                                           instrument_name, asset_name, start_date, end_date)
+        pnl_obj_sum.iloc[:,3] = pnl_obj_sum.iloc[:,3].map("{:,.2f}".format)
+        pnl_obj_sum.iloc[:,4] = pnl_obj_sum.iloc[:,4].map("{:,.2f}".format)
+        pnl_obj_sum.iloc[:,5] = pnl_obj_sum.iloc[:,5].map("{:,.2f}".format)
+        final_df = pnl_obj_sum.to_dict('records')
+        return final_df
 
 
 if __name__ == '__main__':
