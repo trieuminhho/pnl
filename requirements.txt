@@ -6,4 +6,4 @@ dash-html-components==1.0.2
 dash-renderer==1.2.4
 dash-table==4.6.0
 xlrd
-
+Plotly

@@ -6,6 +6,8 @@ import dash_core_components as dcc
 from collections import defaultdict
 import dash_table
 import pandas as pd
+import plotly.express as px
+
 
 pd.set_option('precision', 2)
 
@@ -51,7 +53,6 @@ for i in range(len(available_asset)):
         dict_all[available_asset[i]][asset_instruments[j]] = instrument_contract
 
 names = list(dict_all.keys())
-print(names)
 
 app = dash.Dash(__name__, assets_url_path='assets')
 
@@ -69,7 +70,7 @@ app.layout = html.Div(
                             html.Img(
                                 className="logo", src=app.get_asset_url('logo_fixed.png')
                             ),
-                            html.H6(className="title-header", children="Ticker Filters"),
+                            html.H6(className="title-header", children="Table Filters"),
                         ],
                     ),
                     html.Div(
@@ -101,8 +102,23 @@ app.layout = html.Div(
                         min_date_allowed=dt(2000, 1, 1),
                         max_date_allowed=dt(2030, 1, 1),
                         initial_visible_month=dt(2019, 4, 30),
-                        end_date=dt(2019, 5, 1),
+                        end_date=dt(2019, 5, 7),
                         start_date=dt(2019, 4, 30)
+                    ),
+                    html.Hr(),
+                    html.Div(
+                        className="div-info",
+                        children=[
+                            html.H6(className="title-header", children="Graph Display"),
+                        ],
+                    ),
+                    html.Div(
+                        dcc.Dropdown(
+                            id='graph-dropdown',
+                            options=[{'label': name, 'value': name} for name in column_names[1:]],
+                            value=column_names[1],
+                            searchable=True
+                        ),
                     ),
                 ]
             ),
@@ -120,12 +136,44 @@ app.layout = html.Div(
                             # all three widths are needed
                             'minWidth': '90px', 'width': '90px', 'maxWidth': '120px',
                             'overflow': 'hidden',
-                        }
-                    )
-                ]
-            )
+                        },
+                        style_table={
+                            'maxHeight': '210px',
+                            'overflowY': 'scroll',
+                            'border':'thin lightgrey solid'
+                        },
+                    ),
+                    dcc.Graph(
+                        id='summary-graph'
+                    ),
+                ], style={"height": "30%", "width": "50%"},
+            ),
         ]
 )
+
+
+# display graph based on selection
+@app.callback(
+    dash.dependencies.Output('summary-graph', 'figure'),
+    [
+        dash.dependencies.Input('asset-class-dropdown', 'value'),
+        dash.dependencies.Input('instrument-dropdown', 'value'),
+        dash.dependencies.Input('contract-dropdown', 'value'),
+        dash.dependencies.Input('my-date-picker-range', 'start_date'),
+        dash.dependencies.Input('my-date-picker-range', 'end_date'),
+        dash.dependencies.Input('graph-dropdown', 'value')
+    ]
+)
+def update_graph(asset_name, instrument_name, contract_name, start_date, end_date, graph_option):
+    if start_date < end_date:
+        if graph_option is not None:
+            pnl_obj_sum = report.summary_total(data_file_excel, contract_name,
+                                               instrument_name, asset_name, start_date, end_date)
+            x_name = pnl_obj_sum.columns[0]
+            y_name = graph_option
+            fig = px.line(pnl_obj_sum, x=x_name, y=y_name, template='plotly_white')
+
+            return fig
 
 
 # instrument dropdown options
@@ -167,7 +215,6 @@ def update_contract_dropdown_options(asset_name, instrument_name):
     ]
 )
 def update_contract_dropdown_value(asset_name, instrument_name):
-    print(list(dict_all[asset_name][instrument_name])[0])
     return list(dict_all[asset_name][instrument_name])[0]
 
 

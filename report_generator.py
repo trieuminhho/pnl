@@ -143,8 +143,6 @@ class ReportAnalytics:
                 else:
                     day_trades_final.iloc[row, 6] = ((eod_price_2 - trade_price) * traded_amount) * multiplier
 
-        print(day_trades_final)
-
         return day_trades_final
 
     @staticmethod
@@ -269,7 +267,6 @@ def add_summary(df1, df2):
             if j != 0:
                 if type(df1.iloc[i, j]) == str and type(df2.iloc[i, j]) != str:
                     if j == 1:
-                        print(df2.iloc[i, j])
                         df.iloc[i, j] = abs(df2.iloc[i, j])
                     else:
                         df.iloc[i, j] = df2.iloc[i, j]
@@ -319,9 +316,6 @@ if __name__ == '__main__':
     asset = "Equity"
     pd.set_option('display.max_columns', 30)
     pd.set_option('display.width', 2000)
-
-    # pnl_obj = ReportAnalytics(data_file_excel, ticker, start_date, end_date)
-    # # print(pnl_obj.ticker_summary)
 
     pnl_obj_sum = summary_total(data_file_excel, ticker, instrument, asset, start_date, end_date)
 
