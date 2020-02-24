@@ -1,4 +1,4 @@
-import report_generator as Report
+import report_generator as report
 from datetime import datetime as dt
 import dash
 import dash_html_components as html
@@ -9,11 +9,9 @@ import pandas as pd
 
 pd.set_option('precision', 2)
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
 data_file_excel = 'data/data.xlsx'
 
-trade_df, instrument_df, contract_df, eod_prices_df = Report.ReportAnalytics.read_tables(data_file_excel)
+trade_df, instrument_df, contract_df, eod_prices_df = report.ReportAnalytics.read_tables(data_file_excel)
 
 available_asset = instrument_df.iloc[:, 2].unique()
 
@@ -21,7 +19,7 @@ available_instrument = instrument_df.iloc[:, 0]
 
 available_contract = contract_df.iloc[:, 0]
 
-column_names = Report.ReportAnalytics(data_file_excel, 'CCN9 Comdty', '2019-04-30', '2019-05-30').ticker_summary.columns
+column_names = report.ReportAnalytics(data_file_excel, 'CCN9 Comdty', '2019-04-30', '2019-05-30').ticker_summary.columns
 
 
 dict_all = defaultdict(lambda: defaultdict(dict))
@@ -54,7 +52,7 @@ for i in range(len(available_asset)):
 
 names = list(dict_all.keys())
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, assets_url_path='assets')
 
 # Dash App Layout
 app.layout = html.Div(
@@ -176,7 +174,7 @@ def update_contract_dropdown_value(asset_name, instrument_name):
     ]
 )
 def update_summary_table(asset_name, instrument_name, contract_name, start_date, end_date):
-    pnl_obj_sum = Report.summary_total(data_file_excel, contract_name,
+    pnl_obj_sum = report.summary_total(data_file_excel, contract_name,
                                        instrument_name, asset_name, start_date, end_date)
     final_df = pnl_obj_sum.to_dict('records')
     return final_df
