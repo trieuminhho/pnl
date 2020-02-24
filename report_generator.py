@@ -1,7 +1,5 @@
 import pandas as pd
 
-pd.set_option('precision', 2)
-
 class ReportAnalytics:
     # init constructor which runs at instances of this class
     def __init__(self, file, ticker, start_date, end_date):

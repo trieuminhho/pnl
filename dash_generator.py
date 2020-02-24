@@ -36,7 +36,7 @@ for i in range(len(available_asset)):
         instrument_contract = list(available_contract[instrument_mask])
         all_instrument_asset = all_instrument_asset + instrument_contract
 
-    all_instrument_asset.insert(0, 'All')
+    all_instrument_asset.insert(0, "All")
     dict_all[available_asset[i]]['All'] = all_instrument_asset
 
 
@@ -47,10 +47,11 @@ for i in range(len(available_asset)):
     for j in range(len(asset_instruments)):
         instrument_mask = (contract_df.iloc[:, 2] == asset_instruments_code[j])
         instrument_contract = list(available_contract[instrument_mask])
-        instrument_contract.insert(0, 'All')
+        instrument_contract.insert(0, "All")
         dict_all[available_asset[i]][asset_instruments[j]] = instrument_contract
 
 names = list(dict_all.keys())
+print(names)
 
 app = dash.Dash(__name__, assets_url_path='assets')
 
@@ -114,6 +115,11 @@ app.layout = html.Div(
                     dash_table.DataTable(
                         id='summary-table',
                         columns=[{"name": i, "id": i} for i in column_names],
+                        style_cell={
+                            # all three widths are needed
+                            'minWidth': '90px', 'width': '90px', 'maxWidth': '120px',
+                            'overflow': 'hidden',
+                        }
                     )
                 ]
             )
@@ -159,6 +165,7 @@ def update_contract_dropdown_options(asset_name, instrument_name):
     ]
 )
 def update_contract_dropdown_value(asset_name, instrument_name):
+    print(list(dict_all[asset_name][instrument_name])[0])
     return list(dict_all[asset_name][instrument_name])[0]
 
 
@@ -176,6 +183,9 @@ def update_contract_dropdown_value(asset_name, instrument_name):
 def update_summary_table(asset_name, instrument_name, contract_name, start_date, end_date):
     pnl_obj_sum = report.summary_total(data_file_excel, contract_name,
                                        instrument_name, asset_name, start_date, end_date)
+    pnl_obj_sum.iloc[:,3] = pnl_obj_sum.iloc[:,3].map("{:,.2f}".format)
+    pnl_obj_sum.iloc[:,4] = pnl_obj_sum.iloc[:,4].map("{:,.2f}".format)
+    pnl_obj_sum.iloc[:,5] = pnl_obj_sum.iloc[:,5].map("{:,.2f}".format)
     final_df = pnl_obj_sum.to_dict('records')
     return final_df
 
