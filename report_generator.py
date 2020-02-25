@@ -158,22 +158,41 @@ class ReportAnalytics:
 
         pnl_month = self.daily_pnl.copy()
 
-        date_split = self.end_date.split('-')
+        month_mask = []
 
-        start_month_date = date_split[0] + '-' + date_split[1] + '-01'
+        for date in pnl_month.iloc[:,0]:
+            month_mask.append(int(str(date).split('-')[1]))
 
-        date_mask = (pnl_month.iloc[:, 0] >= start_month_date) & (pnl_month.iloc[:, 0] <= self.end_date)
+        end_date_split = self.end_date.split('-')
+        start_date_split = self.start_date.split('-')
 
-        final = pnl_month.loc[date_mask].reset_index(drop=True)
+        start_month = int(start_date_split[1])
+        end_month = int(end_date_split[1])
 
+        final = pnl_month.copy()
         final['Monthly PnL'] = 0
+        final2 = []
 
-        monthly_sum = 0
-        for row in range(len(final)):
-            monthly_sum += final.iloc[row, 6]
-            final.iloc[row, 7] = monthly_sum
+        for month in range(start_month, end_month + 1):
+            month_mask_bool = []
+            for i in month_mask:
+                if i == month:
+                    month_mask_bool.append(True)
+                else:
+                    month_mask_bool.append(False)
 
-        return final
+            final_temp = final.loc[month_mask_bool].reset_index(drop=True)
+            monthly_sum = 0
+            for row in range(len(final_temp)):
+                monthly_sum += final_temp.iloc[row, 6]
+                final_temp.iloc[row, 7] = monthly_sum
+
+            if month == start_month:
+                final2 = final_temp
+            else:
+                final2 = pd.concat([final2, final_temp], ignore_index=True)
+
+        return final2
 
     def yearly_pnl(self):
 
@@ -311,13 +330,14 @@ if __name__ == '__main__':
 
     start_date = "2019-04-30"
     end_date = "2019-07-29"
-    ticker = "ESM9 Index"
-    instrument = "S&P500"
-    asset = "Equity"
+    ticker = "CCN9 Comdty"
+    instrument = "ALL"
+    asset = "Commodities"
     pd.set_option('display.max_columns', 30)
     pd.set_option('display.width', 2000)
 
     pnl_obj_sum = summary_total(data_file_excel, ticker, instrument, asset, start_date, end_date)
 
+    print(pnl_obj_sum)
 
 
